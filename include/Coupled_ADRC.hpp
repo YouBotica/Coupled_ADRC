@@ -91,6 +91,8 @@ class CoupledADRC : public rclcpp::Node {
     this->declare_parameter("curv_to_velocity_constant", 0.5);
     this->declare_parameter("stopping_distance_multiplier", 1.0);
     this->declare_parameter("max_possible_deceleration", 2.0); // m/s/s should be same as graceful_stop_acceleration in speed_reference_generator
+    this->declare_parameter("cov_Q", 0.02);
+    this->declare_parameter("cov_R", 0.1);
 
     this->declare_parameter("dummy_param", 0.0);
 

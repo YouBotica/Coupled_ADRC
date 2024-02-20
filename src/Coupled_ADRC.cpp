@@ -254,11 +254,14 @@ std::pair<Eigen::Matrix<double, 7, 1>, Eigen::Matrix<double, 7, 7>> CoupledADRC:
   Eigen::Matrix<double, 7, 2> Bd;
   Bd = B*dt;
 
+  double cov_Q = this->get_parameter("cov_Q").as_double();
+  double cov_R = this->get_parameter("cov_R").as_double();
+
   Eigen::Matrix<double, 7, 7> Q;
-  Q = 0.2*Ident7;
+  Q = cov_Q*Ident7;
 
   Eigen::Matrix<double, 4, 4> R;
-  R = 0.01*Ident4;
+  R = cov_R*Ident4;
 
 
   // Construct u and y vectors:
@@ -812,10 +815,10 @@ void CoupledADRC::receivePath(const nav_msgs::msg::Path::SharedPtr msg) {
   }
 
   // double alpha = std::atan2(path[0].pose.position.y, path[0].pose.position.x);
-  double alpha = std::atan2(path[1].pose.position.y, path[1].pose.position.x); // idx
+  double alpha = std::atan2(path[idx].pose.position.y, path[idx].pose.position.x); // idx
   this->yaw_ref = alpha + this->heading;
 
-  // TODO: Publish lookahead marker here:
+  // Publish lookahead marker for visualization:
   visualization_msgs::msg::Marker lookahead_marker;
   lookahead_marker.header = msg->header;
   lookahead_marker.header.stamp = rclcpp::Clock().now();
