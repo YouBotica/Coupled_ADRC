@@ -781,7 +781,9 @@ void CoupledADRC::receivePath(const nav_msgs::msg::Path::SharedPtr msg) {
   // Determines lookahead distance based on speed and bounds
 
   this->path_msg = msg;
-  this->lookahead_distance = std::max(min_la, std::min(max_la, this->speed_ * la_ratio));
+  double filter_gain = this->get_parameter("lookahead_distance_filter_gain").as_double();
+  this->lookahead_distance = (1.0 - filter_gain)*this->lookahead_distance_prev +
+    filter_gain*std::max(min_la, std::min(max_la, this->speed_ * la_ratio));
 
 
   // Unpacks the message and finds the index correlated to the lookahead distance
@@ -795,7 +797,7 @@ void CoupledADRC::receivePath(const nav_msgs::msg::Path::SharedPtr msg) {
   //int idx;
   idx = 0;
   double fraction;
-  std::tie(idx, fraction) = findLookaheadIndex(path, lookahead_distance);
+  std::tie(idx, fraction) = findLookaheadIndex(path, this->lookahead_distance);
   if (idx >= static_cast<int>(path.size()) - 1) {
     this->lookahead_error.data = path[idx].pose.position.y;
   } else {
@@ -891,6 +893,8 @@ void CoupledADRC::receivePath(const nav_msgs::msg::Path::SharedPtr msg) {
   }
 
   this->recv_time_ = rclcpp::Clock().now();
+
+  this->lookahead_distance_prev = this->lookahead_distance_prev;
 }
 
 std::tuple<int, double> CoupledADRC::findLookaheadIndex(
@@ -925,6 +929,7 @@ void CoupledADRC::receiveVelocity(const raptor_dbw_msgs::msg::WheelSpeedReport::
   this->rear_right_wheel_speed = msg->rear_right;
   this->speed_ =
     (this->rear_left_wheel_speed + this->rear_right_wheel_speed) * 0.5 * kphToMps;  // average wheel speeds (kph) and convert to m/s
+  RCLCPP_INFO(this->get_logger(), "Speed: '%f'", this->speed_);
 }
 
 }  // end namespace control

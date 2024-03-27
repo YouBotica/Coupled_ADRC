@@ -93,6 +93,7 @@ class CoupledADRC : public rclcpp::Node {
     this->declare_parameter("max_possible_deceleration", 2.0); // m/s/s should be same as graceful_stop_acceleration in speed_reference_generator
     this->declare_parameter("cov_Q", 0.02);
     this->declare_parameter("cov_R", 0.1);
+    this->declare_parameter("lookahead_distance_filter_gain", 0.1);
 
     this->declare_parameter("dummy_param", 0.0);
 
@@ -295,6 +296,7 @@ class CoupledADRC : public rclcpp::Node {
   double previous_yaw_rate_error = 0.0;
   double previous_lookahead_error = 0.0;
   double lookahead_distance;
+  double lookahead_distance_prev = 10.0; // Just an initial value for the lookahead distance
 
   int idx = 0;
   double yaw_error_ = 0.0;
