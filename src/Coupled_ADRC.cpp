@@ -254,14 +254,11 @@ std::pair<Eigen::Matrix<double, 7, 1>, Eigen::Matrix<double, 7, 7>> CoupledADRC:
   Eigen::Matrix<double, 7, 2> Bd;
   Bd = B*dt;
 
-  double cov_Q = this->get_parameter("cov_Q").as_double();
-  double cov_R = this->get_parameter("cov_R").as_double();
-
   Eigen::Matrix<double, 7, 7> Q;
-  Q = cov_Q*Ident7;
+  Q = this->get_parameter("cov_Q").as_double()*Ident7;
 
   Eigen::Matrix<double, 4, 4> R;
-  R = cov_R*Ident4;
+  R = this->get_parameter("cov_R").as_double()*Ident4;
 
 
   // Construct u and y vectors:
@@ -302,7 +299,7 @@ std::pair<Eigen::Matrix<double, 7, 1>, Eigen::Matrix<double, 7, 7>> CoupledADRC:
 }
 
 
-std::pair<Eigen::Matrix<double, 6, 1>, Eigen::Matrix<double, 6, 6>> CoupledADRC::KalmanExtendedObserver(Eigen::Matrix<double, 6, 1> x_hat_prev_local, Eigen::Matrix<double, 6, 6> Pk_prev_local) {
+std::pair<Eigen::Matrix<double, 7, 1>, Eigen::Matrix<double, 7, 7>> CoupledADRC::KalmanExtendedObserver(Eigen::Matrix<double, 7, 1> x_hat_prev_local, Eigen::Matrix<double, 7, 7> Pk_prev_local) {
 
   double delta = this->steer;
   double T_traction = this->F_traction / VP_.rearWheelRadius;
@@ -339,40 +336,42 @@ std::pair<Eigen::Matrix<double, 6, 1>, Eigen::Matrix<double, 6, 6>> CoupledADRC:
 
   // Generate the state-space matrices with the previously defined coefficients from linearization:
 
-  Eigen::Matrix<double, 6, 6> A;
-  A(0, 0) = A11; A(0, 1) = A12; A(0, 2) = A13; A(0, 3) = A14; A(0, 4) = 1.0; A(0, 5) = 0.0;
-  A(1, 0) = A21; A(1, 1) = A22; A(1, 2) = A23; A(1, 3) = A24; A(1, 4) = 0.0; A(1, 5) = 0.0;
-  A(2, 0) = A31; A(2, 1) = A32; A(2, 2) = A33; A(2, 3) = A34; A(2, 4) = 0.0; A(2, 5) = 0.0;
-  A(3, 0) = A41; A(3, 1) = A42; A(3, 2) = A43; A(3, 3) = A44; A(3, 4) = 0.0; A(3, 5) = 1.0;
-  A(4, 0) = 0.0; A(4, 1) = 0.0; A(4, 2) = 0.0; A(4, 3) = 0.0; A(4, 4) = 0.0; A(4, 5) = 0.0;
-  A(5, 0) = 0.0; A(5, 1) = 0.0; A(5, 2) = 0.0; A(5, 3) = 0.0; A(5, 4) = 0.0; A(5, 5) = 0.0;
+  Eigen::Matrix<double, 7, 7> A;
+  A(0, 0) = A11; A(0, 1) = A12; A(0, 2) = A13; A(0, 3) = A14; A(0, 4) = 1.0; A(0, 5) = 0.0; A(0, 6) = 0.0;
+  A(1, 0) = A21; A(1, 1) = A22; A(1, 2) = A23; A(1, 3) = A24; A(1, 4) = 0.0; A(1, 5) = 0.0; A(1, 6) = 0.0;
+  A(2, 0) = A31; A(2, 1) = A32; A(2, 2) = A33; A(2, 3) = A34; A(2, 4) = 0.0; A(2, 5) = 0.0; A(2, 6) = 0.0;
+  A(3, 0) = A41; A(3, 1) = A42; A(3, 2) = A43; A(3, 3) = A44; A(3, 4) = 0.0; A(3, 5) = 1.0; A(3, 6) = 0.0;
+  A(4, 0) = 0.0; A(4, 1) = 0.0; A(4, 2) = 0.0; A(4, 3) = 0.0; A(4, 4) = 0.0; A(4, 5) = 0.0; A(4, 6) = 0.0;
+  A(5, 0) = 0.0; A(5, 1) = 0.0; A(5, 2) = 0.0; A(5, 3) = 0.0; A(5, 4) = 0.0; A(5, 5) = 0.0; A(5, 6) = 0.0;
+  A(6, 0) = 0.0; A(6, 1) = 0.0; A(6, 2) = 0.0; A(6, 3) = 0.0; A(6, 4) = 0.0; A(6, 5) = 0.0; A(6, 6) = 0.0;
   
-  Eigen::Matrix<double, 6, 2> B;
+  Eigen::Matrix<double, 7, 2> B;
   B(0, 0) = B11; B(0, 1) = B12;
   B(1, 0) = B21; B(1, 1) = B22;
   B(2, 0) = B31; B(2, 1) = B32; 
   B(3, 0) = B41; B(3, 1) = B42;
   B(4, 0) = 0.0; B(4, 1) = 0.0;
   B(5, 0) = 0.0; B(5, 1) = 0.0;
+  B(6, 0) = 0.0; B(6, 1) = 0.0;
 
   Eigen::Matrix<double, 4, 6> Cd;
-  Cd(0, 0) = 1.0; Cd(0, 1) = 0.0; Cd(0, 2) = 0.0; Cd(0, 3) = 0.0; Cd(0, 4) = 0.0; Cd(0, 5) = 0.0;
-  Cd(1, 0) = 0.0; Cd(1, 1) = 1.0; Cd(1, 2) = 0.0; Cd(1, 3) = 0.0; Cd(1, 4) = 0.0; Cd(1, 5) = 0.0;
-  Cd(2, 0) = 0.0; Cd(2, 1) = 0.0; Cd(2, 2) = 1.0; Cd(2, 3) = 0.0; Cd(2, 4) = 0.0; Cd(2, 5) = 0.0;
-  Cd(3, 0) = 0.0; Cd(3, 1) = 0.0; Cd(3, 2) = 0.0; Cd(3, 3) = 1.0; Cd(3, 4) = 0.0; Cd(3, 5) = 0.0;
+  Cd(0, 0) = 1.0; Cd(0, 1) = 0.0; Cd(0, 2) = 0.0; Cd(0, 3) = 0.0; Cd(0, 4) = 0.0; Cd(0, 5) = 0.0; Cd(0, 6) = 0.0;
+  Cd(1, 0) = 0.0; Cd(1, 1) = 1.0; Cd(1, 2) = 0.0; Cd(1, 3) = 0.0; Cd(1, 4) = 0.0; Cd(1, 5) = 0.0; Cd(1, 6) = 0.0;
+  Cd(2, 0) = 0.0; Cd(2, 1) = 0.0; Cd(2, 2) = 1.0; Cd(2, 3) = 0.0; Cd(2, 4) = 0.0; Cd(2, 5) = 0.0; Cd(2, 6) = 0.0;
+  Cd(3, 0) = 0.0; Cd(3, 1) = 0.0; Cd(3, 2) = 0.0; Cd(3, 3) = 1.0; Cd(3, 4) = 0.0; Cd(3, 5) = 0.0; Cd(3, 6) = 0.0;
 
   // Discretize: 
-  Eigen::MatrixXd Ident6 = Eigen::MatrixXd::Identity(6, 6);
+  Eigen::MatrixXd Ident7 = Eigen::MatrixXd::Identity(7, 7);
   Eigen::MatrixXd Ident4 = Eigen::MatrixXd::Identity(4, 4);
 
-  Eigen::Matrix<double, 6, 6> Ad;
-  Ad = Ident6 + A*dt;
+  Eigen::Matrix<double, 7, 7> Ad;
+  Ad = Ident7 + A*dt;
 
-  Eigen::Matrix<double, 6, 2> Bd;
+  Eigen::Matrix<double, 7, 2> Bd;
   Bd = B*dt;
 
-  Eigen::Matrix<double, 6, 6> Q;
-  Q = 0.2*Ident6;
+  Eigen::Matrix<double, 7, 7> Q;
+  Q = this->get_parameter()*Ident6;
 
   Eigen::Matrix<double, 4, 4> R;
   R = 0.01*Ident4;
@@ -390,23 +389,23 @@ std::pair<Eigen::Matrix<double, 6, 1>, Eigen::Matrix<double, 6, 6>> CoupledADRC:
   y(3) = dyaw;
 
   // Predict:
-  Eigen::Matrix<double, 6, 1> x_hat_apriori;
+  Eigen::Matrix<double, 7, 1> x_hat_apriori;
   x_hat_apriori = Ad*x_hat_prev_local + Bd*u;
 
-  Eigen::Matrix<double, 6, 6> Pk_;  
+  Eigen::Matrix<double, 7, 7> Pk_;  
   Pk_ = Ad*Pk_prev_local*Ad.transpose() + Q;
 
   // Update:
-  Eigen::Matrix<double, 6, 4> Kk; // Kalman Gain
+  Eigen::Matrix<double, 7, 4> Kk; // Kalman Gain
   Eigen::Matrix<double, 4, 4> product; 
 
   product = Cd*Pk_*Cd.transpose() + R;
   Kk = Pk_*Cd.transpose()*product.inverse(); 
 
-  Eigen::Matrix<double, 6, 1> x_hat;
+  Eigen::Matrix<double, 7, 1> x_hat;
   x_hat = x_hat_apriori + Kk*(y - Cd*x_hat_apriori);
 
-  Eigen::Matrix<double, 6, 6> Pk_local;
+  Eigen::Matrix<double, 7, 7> Pk_local;
   Pk_local = (Ident6 - Kk*Cd)*Pk_;
 
 

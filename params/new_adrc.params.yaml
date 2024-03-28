@@ -26,7 +26,7 @@
       mass: 720.0
       inertia: 1000.0
     
-    disturbance_model: 2 # Can be either 2 for ramp and 1 for step, the default is 1
+    disturbance_model: 1 # Can be either 2 for ramp and 1 for step, the default is 1
       
     max_lat_error: 3.0
     max_lookahead_error: 4.0

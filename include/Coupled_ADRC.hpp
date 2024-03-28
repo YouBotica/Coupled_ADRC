@@ -367,7 +367,7 @@ class CoupledADRC : public rclcpp::Node {
   double yaw_rate_hat;
   double speed_error;
 
-  int disturbance_model = 1;
+  int disturbance_model = this->get_parameter("disturbance_model").as_int();
 
   Eigen::Matrix<double, 4, 1> obs_in_prev; // Initialize vector of observer inputs [u; y]
   //Eigen::Matrix<double, 7, 7> Pk;   
