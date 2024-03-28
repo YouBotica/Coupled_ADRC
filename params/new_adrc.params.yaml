@@ -14,8 +14,8 @@
     K2: 220.0
     K3: 5.0
     K4: 25.0
-    cov_Q: 0.01 #0.07
-    cov_R: 0.005 # 0.01
+    cov_Q: 0.1 #0.07
+    cov_R: 0.01 # 0.01
     steering_override_threshold: 4.0
     vehicle:
       wheelbase: 2.9718
@@ -37,4 +37,5 @@
     curv_to_velocity_constant: 2.0 #0.5 # converts path curvature to max velocity 
     max_possible_deceleration: 2.0 #2.0
     lookahead_distance_filter_gain: 0.3
+    yaw_reference_filter_gain: 0.2
     dummy_param: 0.0 

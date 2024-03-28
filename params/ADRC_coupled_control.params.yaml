@@ -36,5 +36,6 @@
     lat_err_history_length: 4 # time history length
     curv_to_velocity_constant: 2.0 #0.5 # converts path curvature to max velocity 
     max_possible_deceleration: 2.0 #2.0
-    lookahead_distance_filter_gain: 1.0
+    lookahead_distance_filter_gain: 0.0
+    yaw_reference_filter_gain: 0.0
     dummy_param: 0.0 

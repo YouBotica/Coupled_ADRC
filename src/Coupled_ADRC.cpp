@@ -431,7 +431,7 @@ void CoupledADRC::calculateFB(double dt) {
 
   // Compute the desired yaw rate:
   this->desired_yaw_rate = this->speed_*this->curvature_; 
-  // RCLCPP_INFO(this->get_logger(), "Desired yaw rate: %f", this->desired_yaw_rate);
+  RCLCPP_INFO(this->get_logger(), "Desired yaw rate: %f", this->desired_yaw_rate);
 
   // Speed error:
   this->speed_error = this->desired_velocity - this->speed_;
@@ -468,12 +468,15 @@ void CoupledADRC::calculateFB(double dt) {
   //this->steer =  (Izz / (2*lf*Caf))*(-a42*dy - a44*dyaw - x_hat(5) + 0.0 + K1*(this->desired_yaw_rate - this->yaw_rate)
   //  + K2*(this->yaw_ref - this->heading));
 
+  this->steer =  (Izz / (2*lf*Caf))*(-a42*x_hat(1) - a44*x_hat(3) - x_hat(5) + 0.0 + K1*(this->desired_yaw_rate - x_hat(3))
+   + K2*(this->yaw_ref - x_hat(2)));
+
   // this->steer =  (Izz / (2*lf*Caf))*(-a42*dy - a44*dyaw - x_hat(5) + 0.0 + K1*(this->desired_yaw_rate - this->yaw_rate)
   //  + K2*(this->yaw_ref - this->heading) + K3*atan(K4*this->lookahead_error.data / dx));
 
   // Ordinary ADRC:
-  this->steer =  (Izz / (2*lf*Caf))*(-a42*dy - a44*dyaw - x_hat(5) + 0.0 + K1*(this->desired_yaw_rate - this->yaw_rate)
-   + K2*(this->yaw_ref - this->heading)); // + K3*atan(K4*this->lookahead_error.data / dx));
+  // this->steer =  (Izz / (2*lf*Caf))*(-a42*dy - a44*dyaw - x_hat(5) + 0.0 + K1*(this->desired_yaw_rate - this->yaw_rate)
+  //  + K2*(this->yaw_ref - this->heading)); // + K3*atan(K4*this->lookahead_error.data / dx));
 
   // Stanley controller:
   // this->steer = (this->yaw_ref - this->heading) + atan(K4*this->lat_error.data / dx); 
@@ -798,12 +801,12 @@ void CoupledADRC::receivePath(const nav_msgs::msg::Path::SharedPtr msg) {
   idx = 0;
   double fraction;
   std::tie(idx, fraction) = findLookaheadIndex(path, this->lookahead_distance);
-  if (idx >= static_cast<int>(path.size()) - 1) {
+  if (idx >= static_cast<int>(path.size()) - 2) { // Checks if path overflowed -1
     this->lookahead_error.data = path[idx].pose.position.y;
   } else {
     double idx1_y = path[idx + 1].pose.position.y;
     double idx_y = path[idx].pose.position.y;
-    this->lookahead_error.data = idx_y * fraction + idx1_y * (1. - fraction);
+    this->lookahead_error.data = idx_y * fraction + idx1_y * (1. - fraction); 
   }
   if (path.size() == 1) {
     this->lat_error.data = path[0].pose.position.y;
@@ -816,15 +819,25 @@ void CoupledADRC::receivePath(const nav_msgs::msg::Path::SharedPtr msg) {
     this->lat_error.data = path[0].pose.position.y; //-path[0].pose.position.x * norm_y + path[0].pose.position.y * norm_x;
   }
 
+  double lookahead_x = path[idx].pose.position.x*fraction + path[idx+1].pose.position.x*(1.0 - fraction); // TODO: Make this variables out of this scope
+
   // double alpha = std::atan2(path[0].pose.position.y, path[0].pose.position.x);
-  double alpha = std::atan2(path[idx].pose.position.y, path[idx].pose.position.x); // idx
-  this->yaw_ref = alpha + this->heading;
+
+  // double alpha = std::atan2(this->lookahead_error.data, lookahead_x); // idx
+  double alpha = std::atan2(path[idx].pose.position.y, path[idx].pose.position.x); 
+  //   + fraction*(std::atan2(path[idx+1].pose.position.y, path[idx+1].pose.position.x) 
+  //   - std::atan2(path[idx].pose.position.y, path[idx].pose.position.x)); // idx
+
+  this->yaw_ref = (1.0 - this->yaw_reference_filter_gain)*this->yaw_ref_prev + this->yaw_reference_filter_gain*(alpha + this->heading);
+  // this->yaw_ref = alpha + this->heading;
 
   // Publish lookahead marker for visualization:
   visualization_msgs::msg::Marker lookahead_marker;
   lookahead_marker.header = msg->header;
   lookahead_marker.header.stamp = rclcpp::Clock().now();
-  lookahead_marker.pose.position = path[idx].pose.position;
+  // lookahead_marker.pose.position = path[idx].pose.position;
+  lookahead_marker.pose.position.x = lookahead_x; //lookahead_x;
+  lookahead_marker.pose.position.y = this->lookahead_error.data;
   lookahead_marker.type = visualization_msgs::msg::Marker::CUBE;
   lookahead_marker.action = visualization_msgs::msg::Marker::ADD;
   lookahead_marker.lifetime.sec = 0;
@@ -894,7 +907,9 @@ void CoupledADRC::receivePath(const nav_msgs::msg::Path::SharedPtr msg) {
 
   this->recv_time_ = rclcpp::Clock().now();
 
-  this->lookahead_distance_prev = this->lookahead_distance_prev;
+  this->lookahead_distance_prev = this->lookahead_distance;
+
+  this->yaw_ref_prev = this->yaw_ref;
 }
 
 std::tuple<int, double> CoupledADRC::findLookaheadIndex(
@@ -929,7 +944,7 @@ void CoupledADRC::receiveVelocity(const raptor_dbw_msgs::msg::WheelSpeedReport::
   this->rear_right_wheel_speed = msg->rear_right;
   this->speed_ =
     (this->rear_left_wheel_speed + this->rear_right_wheel_speed) * 0.5 * kphToMps;  // average wheel speeds (kph) and convert to m/s
-  RCLCPP_INFO(this->get_logger(), "Speed: '%f'", this->speed_);
+  RCLCPP_DEBUG(this->get_logger(), "Speed: '%f'", this->speed_);
 }
 
 }  // end namespace control
