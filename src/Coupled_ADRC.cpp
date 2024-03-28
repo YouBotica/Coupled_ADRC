@@ -463,7 +463,6 @@ void CoupledADRC::calculateFB(double dt) {
   a42 = -(2*lf*Caf-2*lr*Car)/(Izz*dx); 
   a44 = -(2*lf*lf*Caf+2*lr*lr*Car)/(Izz*dx);
 
-
   
   //this->steer =  (Izz / (2*lf*Caf))*(-a42*dy - a44*dyaw - x_hat(5) + 0.0 + K1*(this->desired_yaw_rate - this->yaw_rate)
   //  + K2*(this->yaw_ref - this->heading));
@@ -472,7 +471,10 @@ void CoupledADRC::calculateFB(double dt) {
   //  + K2*(this->yaw_ref - this->heading) + K3*atan(K4*this->lookahead_error.data / dx));
 
   // Ordinary ADRC:
-  this->steer =  (Izz / (2*lf*Caf))*(-a42*dy - a44*dyaw - x_hat(5) + 0.0 + K1*(this->desired_yaw_rate - this->yaw_rate)
+  // this->steer =  (Izz / (2*lf*Caf))*(-a42*dy - a44*dyaw - x_hat(5) + 0.0 + K1*(this->desired_yaw_rate - this->yaw_rate)
+  //  + K2*(this->yaw_ref - this->heading)); // + K3*atan(K4*this->lookahead_error.data / dx));
+
+  this->steer =  (Izz / ((lf+lr)*(2*Caf+2*Car)))*(-a42*dy - a44*dyaw - x_hat(5) + 0.0 + K1*(this->desired_yaw_rate - this->yaw_rate)
    + K2*(this->yaw_ref - this->heading)); // + K3*atan(K4*this->lookahead_error.data / dx));
 
   // Stanley controller:

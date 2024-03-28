@@ -11,7 +11,7 @@
     max_steer_angle: 17.5
     K1l: 3.0
     K1: 24.0 
-    K2: 120.0
+    K2: 160.0
     K3: 5.0
     K4: 25.0
     steering_override_threshold: 4.0
