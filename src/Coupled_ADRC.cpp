@@ -477,6 +477,9 @@ void CoupledADRC::calculateFB(double dt) {
   this->steer =  (Izz / ((2*lf)*(Caf+Car)))*(-a42*dy - a44*dyaw - x_hat(5) + 0.0 + K1*(this->desired_yaw_rate - this->yaw_rate)
    + K2*(this->yaw_ref - this->heading)); // + K3*atan(K4*this->lookahead_error.data / dx));
 
+  // this->steer =  (Izz / ((2*lf)*(Caf+Car)))*(-a42*dy - a44*dyaw + 0.0 + K1*(this->desired_yaw_rate - this->yaw_rate)
+  //  + K2*(this->yaw_ref - this->heading)); // + K3*atan(K4*this->lookahead_error.data / dx));
+
   // Stanley controller:
   // this->steer = (this->yaw_ref - this->heading) + atan(K4*this->lat_error.data / dx); 
     
@@ -805,9 +808,11 @@ void CoupledADRC::receivePath(const nav_msgs::msg::Path::SharedPtr msg) {
     double idx_y = path[idx].pose.position.y;
     this->lookahead_error.data = idx_y * fraction + idx1_y * (1. - fraction);
   }
+
   if (path.size() == 1) {
-    this->lat_error.data = path[0].pose.position.y;
-  } else {
+     this->lat_error.data = path[0].pose.position.y;
+  } 
+  else {
     double diff_x = path[1].pose.position.x - path[0].pose.position.x;
     double diff_y = path[1].pose.position.y - path[0].pose.position.y;
     double norm_factor = 1. / std::sqrt(diff_x * diff_x + diff_y * diff_y);
@@ -816,15 +821,27 @@ void CoupledADRC::receivePath(const nav_msgs::msg::Path::SharedPtr msg) {
     this->lat_error.data = path[0].pose.position.y; //-path[0].pose.position.x * norm_y + path[0].pose.position.y * norm_x;
   }
 
-  // double alpha = std::atan2(path[0].pose.position.y, path[0].pose.position.x);
-  double alpha = std::atan2(path[idx].pose.position.y, path[idx].pose.position.x); // idx
+  double lookahead_x;
+  if (!isnan(path[idx+1].pose.position.x)){
+    lookahead_x = path[idx].pose.position.x*fraction + path[idx+1].pose.position.x*(1.0 - fraction); // TODO: Make this variables out of this scope
+    this->lookahead_error.data = path[idx].pose.position.y;
+  }
+  else{
+    lookahead_x = path[idx].pose.position.x;
+  }
+
+
+  // double alpha = std::atan2(path[idx].pose.position.y, path[idx].pose.position.x); 
+  double alpha = std::atan2(this->lookahead_error.data, path[idx].pose.position.x); 
+
   this->yaw_ref = alpha + this->heading;
 
   // Publish lookahead marker for visualization:
   visualization_msgs::msg::Marker lookahead_marker;
   lookahead_marker.header = msg->header;
   lookahead_marker.header.stamp = rclcpp::Clock().now();
-  lookahead_marker.pose.position = path[idx].pose.position;
+  lookahead_marker.pose.position.x = lookahead_x;
+  lookahead_marker.pose.position.y = this->lookahead_error.data;
   lookahead_marker.type = visualization_msgs::msg::Marker::CUBE;
   lookahead_marker.action = visualization_msgs::msg::Marker::ADD;
   lookahead_marker.lifetime.sec = 0;
