@@ -12,6 +12,9 @@
    limitations under the License.
 */
 
+// Coupled-ADRC: Andres F. Hoyos (hoyos@purdue.edu) - Developed an ADRC coupled controller using the functionalities of Will Bryan's PID implementation. (2024)
+
+
 #include <Coupled_ADRC.hpp>
 
 namespace control {
